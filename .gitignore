@@ -1,0 +1,28 @@
+# Datasets - too large to upload
+dataset/
+dataset2/
+
+# Trained models - too large to upload
+models/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# VS Code settings
+.vscode/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
