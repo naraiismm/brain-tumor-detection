@@ -5,24 +5,26 @@ from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
 from tensorflow.keras.models import Model
 import matplotlib.pyplot as plt
 
-# ---- AYARLAR ----
-IMG_SIZE = (224, 224)
-BATCH_SIZE = 32
-EPOCHS = 10
+# ---- SETTINGS ----
+IMG_SIZE = (224, 224)      # Input image size
+BATCH_SIZE = 32             # Number of images per batch
+EPOCHS = 10                 # Number of training epochs
 
-DATASET1 = r"C:\Users\THE SULEYMANOVS\brain_tumor\dataset"
-DATASET2 = r"C:\Users\THE SULEYMANOVS\brain_tumor\dataset2"
+DATASET1 = r"C:\Users\THE SULEYMANOVS\brain_tumor\dataset"   # Primary dataset
+DATASET2 = r"C:\Users\THE SULEYMANOVS\brain_tumor\dataset2"  # Secondary dataset
 
-# ---- DATA HAZIRLIĞI ----
+# ---- DATA PREPARATION ----
+# Training data generator with augmentation
 datagen = ImageDataGenerator(
-    rescale=1./255,
-    rotation_range=10,
-    horizontal_flip=True
+    rescale=1./255,          # Normalize pixel values to [0,1]
+    rotation_range=10,       # Random rotation up to 10 degrees
+    horizontal_flip=True     # Random horizontal flip
 )
 
+# Test data generator without augmentation
 test_datagen = ImageDataGenerator(rescale=1./255)
 
-# Dataset 1 - Train
+# Dataset 1 - Training set
 train_data = datagen.flow_from_directory(
     DATASET1 + r"\Training",
     target_size=IMG_SIZE,
@@ -30,7 +32,7 @@ train_data = datagen.flow_from_directory(
     class_mode='categorical'
 )
 
-# Dataset 1 - Test
+# Dataset 1 - Validation set
 test_data1 = test_datagen.flow_from_directory(
     DATASET1 + r"\Testing",
     target_size=IMG_SIZE,
@@ -38,7 +40,7 @@ test_data1 = test_datagen.flow_from_directory(
     class_mode='categorical'
 )
 
-# Dataset 2 - Test
+# Dataset 2 - External test set (different source)
 test_data2 = test_datagen.flow_from_directory(
     DATASET2 + r"\Testing",
     target_size=IMG_SIZE,
@@ -46,21 +48,23 @@ test_data2 = test_datagen.flow_from_directory(
     class_mode='categorical'
 )
 
-print("✅ Hər iki dataset hazırdır!")
-print("Siniflər:", train_data.class_indices)
+print("✅ Both datasets loaded successfully!")
+print("Classes:", train_data.class_indices)
 
-# ---- MODELİ QUR ----
+# ---- BUILD MODEL ----
+# Load MobileNetV2 pre-trained on ImageNet (Transfer Learning)
 base_model = MobileNetV2(
-    weights='imagenet',
-    include_top=False,
+    weights='imagenet',      # Use pre-trained ImageNet weights
+    include_top=False,       # Exclude original classification layer
     input_shape=(224, 224, 3)
 )
-base_model.trainable = False
+base_model.trainable = False # Freeze base model weights
 
-x = GlobalAveragePooling2D()(base_model.output)
-x = Dropout(0.3)(x)
-x = Dense(128, activation='relu')(x)
-output = Dense(4, activation='softmax')(x)
+# Add custom classification layers on top
+x = GlobalAveragePooling2D()(base_model.output)  # Reduce spatial dimensions
+x = Dropout(0.3)(x)                               # Prevent overfitting
+x = Dense(128, activation='relu')(x)              # Fully connected layer
+output = Dense(4, activation='softmax')(x)         # Output layer for 4 classes
 
 model = Model(inputs=base_model.input, outputs=output)
 model.compile(
@@ -69,8 +73,8 @@ model.compile(
     metrics=['accuracy']
 )
 
-# ---- ÖYRƏT ----
-print("\n🚀 Model öyrənir...")
+# ---- TRAIN MODEL ----
+print("\n🚀 Training started...")
 history = model.fit(
     train_data,
     validation_data=test_data1,
@@ -78,27 +82,30 @@ history = model.fit(
 )
 
 model.save('mobilenet_model.keras')
-print("✅ Model saxlanıldı!")
+print("✅ Model saved!")
 
-# ---- DATASET 2 İLƏ TEST ----
-print("\n📊 Dataset 2 ilə test edilir...")
+# ---- EVALUATE ON DATASET 2 ----
+# Test on unseen data from a different source
+print("\n📊 Evaluating on Dataset 2...")
 loss2, acc2 = model.evaluate(test_data2)
-print(f"Dataset 2 Accuracy: %{acc2*100:.2f}")
+print(f"Dataset 2 Accuracy: {acc2*100:.2f}%")
 
-# ---- QRAFİK ----
+# ---- PLOT RESULTS ----
 plt.figure(figsize=(12,4))
 
+# Accuracy plot
 plt.subplot(1,2,1)
 plt.plot(history.history['accuracy'], label='Train')
 plt.plot(history.history['val_accuracy'], label='Validation')
-plt.title('Accuracy')
+plt.title('Model Accuracy')
 plt.legend()
 
+# Loss plot
 plt.subplot(1,2,2)
 plt.plot(history.history['loss'], label='Train')
 plt.plot(history.history['val_loss'], label='Validation')
-plt.title('Loss')
+plt.title('Model Loss')
 plt.legend()
 
 plt.savefig('results.png')
-print("✅ Qrafik saxlanıldı: results.png")
+print("✅ Results chart saved: results.png")

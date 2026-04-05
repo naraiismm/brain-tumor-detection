@@ -15,30 +15,26 @@ mobilenet = load_model(r'models\mobilenet_model.keras')  # Load MobileNetV2 mode
 cnn = load_model(r'models\cnn_model.keras')              # Load CNN model
 print("✅ Models loaded successfully!")
 
-def predict_image(img_path):
-    # Load and preprocess the input image
-    img = image.load_img(img_path, target_size=IMG_SIZE)
-    img_array = image.img_to_array(img) / 255.0  # Normalize pixel values to [0,1]
-    img_array = np.expand_dims(img_array, axis=0) # Add batch dimension
+def predict(img_path):
+    img = keras_image.load_img(img_path, target_size=IMG_SIZE)
+    img_array = keras_image.img_to_array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-    # Run predictions using both models
-    mb_pred = mobilenet.predict(img_array, verbose=0)  # MobileNetV2 prediction
-    cnn_pred = cnn.predict(img_array, verbose=0)       # CNN prediction
+    mb_pred = mobilenet.predict(img_array, verbose=0)
+    cnn_pred = cnn.predict(img_array, verbose=0)
 
-    # Get predicted class and confidence score
-    mb_class = CLASSES[np.argmax(mb_pred)]   # Highest probability class
+    mb_class = CLASSES[np.argmax(mb_pred)]
     cnn_class = CLASSES[np.argmax(cnn_pred)]
-
-    mb_conf = np.max(mb_pred) * 100   # Confidence percentage
+    mb_conf = np.max(mb_pred) * 100
     cnn_conf = np.max(cnn_pred) * 100
 
-    # Display results in terminal
-    print("\n" + "="*40)
-    print("📊 PREDICTION RESULTS")
-    print("="*40)
-    print(f"🧠 MobileNetV2: {mb_class} ({mb_conf:.1f}%)")
-    print(f"🧠 CNN:         {cnn_class} ({cnn_conf:.1f}%)")
-    print("="*40)
+    # Voting system
+    if mb_class == cnn_class:
+        final = f"✅ Both agree: {mb_class}"
+    else:
+        final = f"⚠️ Uncertain - Please consult a doctor"
+
+    return mb_class, mb_conf, cnn_class, cnn_conf, final
 
     # Visualize the input image with prediction results
     plt.figure(figsize=(6,6))
